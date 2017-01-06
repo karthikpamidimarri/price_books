@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20161220053311) do
+ActiveRecord::Schema.define(version: 20170106075514) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
@@ -155,6 +155,17 @@ ActiveRecord::Schema.define(version: 20161220053311) do
   add_index "spree_credit_cards", ["payment_method_id"], name: "index_spree_credit_cards_on_payment_method_id", using: :btree
   add_index "spree_credit_cards", ["user_id"], name: "index_spree_credit_cards_on_user_id", using: :btree
 
+  create_table "spree_currency_rates", force: :cascade do |t|
+    t.string   "base_currency"
+    t.string   "currency"
+    t.boolean  "default",       default: false, null: false
+    t.float    "exchange_rate"
+    t.datetime "created_at"
+    t.datetime "updated_at"
+  end
+
+  add_index "spree_currency_rates", ["default"], name: "index_spree_currency_rates_on_default", using: :btree
+
   create_table "spree_customer_returns", force: :cascade do |t|
     t.string   "number"
     t.integer  "stock_location_id"
@@ -211,6 +222,7 @@ ActiveRecord::Schema.define(version: 20161220053311) do
     t.decimal  "pre_tax_amount",               precision: 12, scale: 4, default: 0.0, null: false
     t.decimal  "taxable_adjustment_total",     precision: 10, scale: 2, default: 0.0, null: false
     t.decimal  "non_taxable_adjustment_total", precision: 10, scale: 2, default: 0.0, null: false
+    t.decimal  "list_price",                   precision: 10, scale: 2, default: 0.0
   end
 
   add_index "spree_line_items", ["order_id"], name: "index_spree_line_items_on_order_id", using: :btree
@@ -388,14 +400,46 @@ ActiveRecord::Schema.define(version: 20161220053311) do
 
   add_index "spree_preferences", ["key"], name: "index_spree_preferences_on_key", unique: true, using: :btree
 
+  create_table "spree_price_books", force: :cascade do |t|
+    t.datetime "active_from"
+    t.datetime "active_to"
+    t.string   "currency"
+    t.boolean  "default",                 default: false, null: false
+    t.boolean  "discount",                default: false, null: false
+    t.string   "name"
+    t.integer  "parent_id"
+    t.float    "price_adjustment_factor"
+    t.integer  "priority",                default: 0,     null: false
+    t.integer  "role_id"
+    t.integer  "store_id"
+    t.integer  "lft"
+    t.integer  "rgt"
+    t.integer  "depth"
+    t.datetime "created_at"
+    t.datetime "updated_at"
+  end
+
+  add_index "spree_price_books", ["active_from"], name: "index_spree_price_books_on_active_from", using: :btree
+  add_index "spree_price_books", ["active_to"], name: "index_spree_price_books_on_active_to", using: :btree
+  add_index "spree_price_books", ["currency"], name: "index_spree_price_books_on_currency", using: :btree
+  add_index "spree_price_books", ["default"], name: "index_spree_price_books_on_default", using: :btree
+  add_index "spree_price_books", ["depth"], name: "index_spree_price_books_on_depth", using: :btree
+  add_index "spree_price_books", ["lft"], name: "index_spree_price_books_on_lft", using: :btree
+  add_index "spree_price_books", ["parent_id"], name: "index_spree_price_books_on_parent_id", using: :btree
+  add_index "spree_price_books", ["rgt"], name: "index_spree_price_books_on_rgt", using: :btree
+  add_index "spree_price_books", ["role_id"], name: "index_spree_price_books_on_role_id", using: :btree
+  add_index "spree_price_books", ["store_id"], name: "index_spree_price_books_on_store_id", using: :btree
+
   create_table "spree_prices", force: :cascade do |t|
-    t.integer  "variant_id",                          null: false
-    t.decimal  "amount",     precision: 10, scale: 2
+    t.integer  "variant_id",                             null: false
+    t.decimal  "amount",        precision: 10, scale: 2
     t.string   "currency"
     t.datetime "deleted_at"
+    t.integer  "price_book_id"
   end
 
   add_index "spree_prices", ["deleted_at"], name: "index_spree_prices_on_deleted_at", using: :btree
+  add_index "spree_prices", ["price_book_id"], name: "index_spree_prices_on_price_book_id", using: :btree
   add_index "spree_prices", ["variant_id", "currency"], name: "index_spree_prices_on_variant_id_and_currency", using: :btree
   add_index "spree_prices", ["variant_id"], name: "index_spree_prices_on_variant_id", using: :btree
 
@@ -917,6 +961,18 @@ ActiveRecord::Schema.define(version: 20161220053311) do
   add_index "spree_store_credits", ["originator_id", "originator_type"], name: "spree_store_credits_originator", using: :btree
   add_index "spree_store_credits", ["type_id"], name: "index_spree_store_credits_on_type_id", using: :btree
   add_index "spree_store_credits", ["user_id"], name: "index_spree_store_credits_on_user_id", using: :btree
+
+  create_table "spree_store_price_books", force: :cascade do |t|
+    t.integer  "price_book_id"
+    t.integer  "store_id"
+    t.integer  "priority",      default: 0, null: false
+    t.datetime "created_at"
+    t.datetime "updated_at"
+  end
+
+  add_index "spree_store_price_books", ["price_book_id"], name: "index_spree_store_price_books_on_price_book_id", using: :btree
+  add_index "spree_store_price_books", ["priority"], name: "index_spree_store_price_books_on_priority", using: :btree
+  add_index "spree_store_price_books", ["store_id"], name: "index_spree_store_price_books_on_store_id", using: :btree
 
   create_table "spree_stores", force: :cascade do |t|
     t.string   "name"
